@@ -56,7 +56,13 @@ class Converter {
     */
   private def convertJDFToGTFS(pathToGTFS: String)(pathToJDF: String) = {
     if (Files.exists(Paths.get(pathToGTFS))) {
+      deleteFolder(new File(pathToGTFS))
     }
+    createDir("tmp/jdf")
+    (new Unzipper(pathToJDF)).unzip("./tmp/jdf/")
+    val jdf = new JDF("./tmp/jdf/")
+    jdf.test.foreach(println)
+    deleteFolder(new File("tmp/jdf"))
   }
 
   /**
