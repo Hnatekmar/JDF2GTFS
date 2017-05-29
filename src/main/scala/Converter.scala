@@ -61,7 +61,6 @@ class Converter {
     createDir("tmp/jdf")
     (new Unzipper(pathToJDF)).unzip("./tmp/jdf/")
     val jdf = new JDF("./tmp/jdf/")
-    jdf.test.foreach(println)
     deleteFolder(new File("tmp/jdf"))
   }
 
