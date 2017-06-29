@@ -15,7 +15,8 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        CisloCasovehoKodu BIGINT,
        OznaceniCasovehoKodu VARCHAR(2),
        TypCasovehoKodu VARCHAR(1),
-       DatumOd DATETIME,
+       DatumOd BIGINT,
+       DatumDo BIGINT,
        Poznamka VARCHAR(254),
        RozliseniLinky BIGINT
     """,
@@ -24,6 +25,7 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
       DIC VARCHAR(14),
       ObchodniJmeno VARCHAR(254),
       DruhFirmy BIGINT,
+      JmenoFyzickeOsoby VARCHAR(254),
       Sidlo VARCHAR(254),
       TelefonSidla VARCHAR(48),
       TelefonDispecink VARCHAR(48),
@@ -44,10 +46,10 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        PouzitiOznacniku CHAR,
        Rezerva VARCHAR(5),
        CisloLicence VARCHAR(48),
-       PlatnostLicenceOd DATETIME,
-       PlatnostLicenceDo DATETIME,
-       PlatnostJROd DATETIME,
-       PlatnostJRDo DATETIME,
+       PlatnostLicenceOd BIGINT,
+       PlatnostLicenceDo BIGINT,
+       PlatnostJROd BIGINT,
+       PlatnostJRDo BIGINT,
        RosliseniDopravce BIGINT,
        RosliseniLinky BIGINT
     """,
@@ -88,8 +90,8 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        PevKod1 VARCHAR(5),
        PevKod2 VARCHAR(5),
        Kilometry INT,
-       CasPrijezdu DATETIME,
-       CasOdjezdu DATETIME,
+       CasPrijezdu BIGINT,
+       CasOdjezdu BIGINT,
        RozliseniLinky BIGINT
     """,
     """
@@ -107,9 +109,20 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        PevKod6 VARCHAR(5)
     """
   )
-  tables.foreach(tableName => SQL(s"DROP TABLE IF EXISTS $tableName").execute.apply())
-  tables.zip(tableColumns).foreach(tableInfo => {
-    val (name, columns) = tableInfo
+  val columnNames = List(
+    "CisloLinky,CisloSpoje,CisloCasovehoKodu,OznaceniCasovehoKodu,TypCasovehoKodu,DatumOd,DatumDo,Poznamka,RozliseniLinky",
+    "IC,DIC,ObchodniJmeno,DruhFirmy,JmenoFyzickeOsoby,Sidlo,TelefonSidla,TelefonDispecink,TelefonInformace,Fax,EMail,WWW,RosliseniDopravce",
+    "CisloLinky,NazevLinky,ICDopravce,TypLinky,DopravniProstredek,ObjizdkovyJR,SeskupeniSpoju,PouzitiOznacniku,Rezerva,CisloLicence,PlatnostLicenceOd,PlatnostLicenceDo,PlatnostJROd,PlatnostJRDo,RosliseniDopravce,RosliseniLinky",
+    "CisloLinky,CisloSpoje,PevKod1,PevKod2,PevKod3,PevKod4,PevKod5,PevKod6,PevKod7,PevKod8,PevKod9,PevKod10,KodSkupinySpoju,RozliseniLinky",
+    "CisloLinky,CisloTarifni,TarifniPasmo,CisloZastavky,PrumernaDoba,PevKod1,PevKod2,PevKod3,RozliseniLinky",
+    "CisloLinky,CisloSpoje,CisloTarifni,CisloZastavky,KodOznacniku,CisloStanoviste,PevKod1,PevKod2,Kilometry,CasPrijezdu,CasOdjezdu,RozliseniLinky",
+    "CisloZastavky,NazevObce,CastObce,BlizsiMisto,BlizkaObec,Stat,PevKod1,PevKod2,PevKod3,PevKod4,PevKod5,PevKod6"
+  )
+  //tables.foreach(tableName => SQL(s"DROP TABLE IF EXISTS $tableName").execute.apply())
+  tables.zip(tableColumns).zip(columnNames).map({case ((x, y), z) => (x, y, z)}).foreach(tableInfo =>
+  {
+    val (name, columns, names) = tableInfo
     SQL(s"CREATE TABLE IF NOT EXISTS $name($columns)").execute.apply()
+    SQL(s"INSERT INTO $name (SELECT NULLIF(*, '') FROM CSVREAD('./tmp/jdf/$name.txt', '$names', 'charset=Windows-1250 lineComment=\\;'))").execute.apply()
   })
 }
