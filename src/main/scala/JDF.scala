@@ -90,8 +90,8 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        PevKod1 VARCHAR(5),
        PevKod2 VARCHAR(5),
        Kilometry INT,
-       CasPrijezdu BIGINT,
-       CasOdjezdu BIGINT,
+       CasPrijezdu VARCHAR(5),
+       CasOdjezdu VARCHAR(5),
        RozliseniLinky BIGINT
     """,
     """
@@ -122,7 +122,11 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
   tables.zip(tableColumns).zip(columnNames).map({case ((x, y), z) => (x, y, z)}).foreach(tableInfo =>
   {
     val (name, columns, names) = tableInfo
+    val nullIfs = names.split(",")
+      .map(x => "NULLIF(\"" + x + "\", '')")
+      .reduceLeft((x, y) => x + ", " + y)
+
     SQL(s"CREATE TABLE IF NOT EXISTS $name($columns)").execute.apply()
-    SQL(s"INSERT INTO $name (SELECT NULLIF(*, '') FROM CSVREAD('./tmp/jdf/$name.txt', '$names', 'charset=Windows-1250 lineComment=\\;'))").execute.apply()
+    SQL(s"INSERT INTO $name (SELECT $nullIfs FROM CSVREAD('./tmp/jdf/$name.txt', '$names', 'charset=Windows-1250 lineComment=\\;'))").execute.apply()
   })
 }
