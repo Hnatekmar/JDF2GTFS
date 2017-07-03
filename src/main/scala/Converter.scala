@@ -1,10 +1,10 @@
 
 import java.io.File
 import javax.annotation.processing.FilerException
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 
+import org.h2.jdbc.JdbcSQLException
 import scalikejdbc._
-
 
 /**
   * Hlavní třída převodníku:
@@ -13,6 +13,16 @@ import scalikejdbc._
   */
 class Converter {
   Class.forName("org.h2.Driver")
+  GlobalSettings.loggingSQLAndTime = LoggingSQLAndTimeSettings(
+    enabled = false,
+    singleLineMode = false,
+    printUnprocessedStackTrace = false,
+    stackTraceDepth= 15,
+    logLevel = 'debug,
+    warningEnabled = false,
+    warningThresholdMillis = 3000L,
+    warningLogLevel = 'warn
+  )
   ConnectionPool.singleton("jdbc:h2:mem:transfer;DB_CLOSE_DELAY=-1", "user", "pass")
   private implicit val session = AutoSession
 
@@ -60,8 +70,17 @@ class Converter {
     }
     createDir("tmp/jdf")
     new Unzipper(pathToJDF).unzip("./tmp/jdf/")
-    val jdf = JDFDirector("./tmp/jdf/")
-    deleteFolder(new File("tmp/jdf"))
+    try {
+      val jdf = JDFDirector("./tmp/jdf/")
+    }
+    catch
+    {
+      case ex:JdbcSQLException => println(s"Data z $pathToJDF se nepodařilo načíst. Pravděpodobně se jedná o chybu v CSV")
+    }
+    finally {
+      deleteFolder(new File("tmp/jdf"))
+      deleteFolder(new File(pathToJDF))
+    }
   }
 
   /**
@@ -76,6 +95,7 @@ class Converter {
     if(Files.exists(Paths.get(pathToZip))) {
       new Unzipper(pathToZip).unzip("./tmp/")
       getListOfFiles(new File("tmp")).foreach(convertJDFToGTFS(pathToGTFS))
+      deleteFolder(new File("./tmp/"))
     }
     else {
       Console.err.println("Nelze nálezt zip s JDF!")
