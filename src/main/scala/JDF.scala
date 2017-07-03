@@ -8,6 +8,7 @@ import scalikejdbc._
 class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
   val tables = List("Caskody", "Dopravci", "Linky", "Spoje", "Zaslinky", "Zasspoje",
     "Zastavky")
+
   val tableColumns = List(
     """
        CisloLinky BIGINT,
@@ -89,9 +90,12 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
        CisloStanoviste VARCHAR(48),
        PevKod1 VARCHAR(5),
        PevKod2 VARCHAR(5),
-       Kilometry INT,
+       PevKod3 VARCHAR(5),
+       Kilometry BIGINT,
        CasPrijezdu VARCHAR(5),
        CasOdjezdu VARCHAR(5),
+       MinCasPrijezdu VARCHAR(5),
+       MaxCasOdjezdu VARCHAR(5),
        RozliseniLinky BIGINT
     """,
     """
@@ -115,12 +119,10 @@ class JDF(jdfFolder: String)(implicit session: DBSession = AutoSession) {
     "CisloLinky,NazevLinky,ICDopravce,TypLinky,DopravniProstredek,ObjizdkovyJR,SeskupeniSpoju,PouzitiOznacniku,Rezerva,CisloLicence,PlatnostLicenceOd,PlatnostLicenceDo,PlatnostJROd,PlatnostJRDo,RosliseniDopravce,RosliseniLinky",
     "CisloLinky,CisloSpoje,PevKod1,PevKod2,PevKod3,PevKod4,PevKod5,PevKod6,PevKod7,PevKod8,PevKod9,PevKod10,KodSkupinySpoju,RozliseniLinky",
     "CisloLinky,CisloTarifni,TarifniPasmo,CisloZastavky,PrumernaDoba,PevKod1,PevKod2,PevKod3,RozliseniLinky",
-    "CisloLinky,CisloSpoje,CisloTarifni,CisloZastavky,KodOznacniku,CisloStanoviste,PevKod1,PevKod2,Kilometry,CasPrijezdu,CasOdjezdu,RozliseniLinky",
+    "CisloLinky,CisloSpoje,CisloTarifni,CisloZastavky,KodOznacniku,CisloStanoviste,PevKod1,PevKod2,PevKod3,Kilometry,CasPrijezdu,CasOdjezdu,MinCasPrijezdu,MaxCasOdjezdu,RozliseniLinky",
     "CisloZastavky,NazevObce,CastObce,BlizsiMisto,BlizkaObec,Stat,PevKod1,PevKod2,PevKod3,PevKod4,PevKod5,PevKod6"
   )
-  //tables.foreach(tableName => SQL(s"DROP TABLE IF EXISTS $tableName").execute.apply())
-  tables.zip(tableColumns).zip(columnNames).map({case ((x, y), z) => (x, y, z)}).foreach(tableInfo =>
-  {
+  tables.zip(tableColumns).zip(columnNames).map({ case ((x, y), z) => (x, y, z) }).foreach(tableInfo => {
     val (name, columns, names) = tableInfo
     val nullIfs = names.split(",")
       .map(x => "NULLIF(\"" + x + "\", '')")
