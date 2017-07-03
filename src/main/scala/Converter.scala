@@ -59,8 +59,8 @@ class Converter {
       deleteFolder(new File(pathToGTFS))
     }
     createDir("tmp/jdf")
-    (new Unzipper(pathToJDF)).unzip("./tmp/jdf/")
-    val jdf = new JDF("./tmp/jdf/")
+    new Unzipper(pathToJDF).unzip("./tmp/jdf/")
+    val jdf = JDFDirector("./tmp/jdf/")
     deleteFolder(new File("tmp/jdf"))
   }
 
