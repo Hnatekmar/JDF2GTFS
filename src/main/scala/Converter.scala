@@ -23,7 +23,7 @@ class Converter {
     warningThresholdMillis = 3000L,
     warningLogLevel = 'warn
   )
-  ConnectionPool.singleton("jdbc:h2:mem:transfer;DB_CLOSE_DELAY=-1", "user", "pass")
+  ConnectionPool.singleton("jdbc:h2:mem:transfer;DB_CLOSE_DELAY=-1;database_to_upper=false", "user", "pass")
   private implicit val session = AutoSession
 
   /**

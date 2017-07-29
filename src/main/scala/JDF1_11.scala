@@ -28,7 +28,7 @@ class JDF1_11(jdfFolder: String) extends JDF(jdfFolder,
         EMail VARCHAR(48),
         WWW VARCHAR(48),
         RosliseniDopravce BIGINT
-      """,
+    """,
     """
          CisloLinky BIGINT,
          NazevLinky VARCHAR(254),
