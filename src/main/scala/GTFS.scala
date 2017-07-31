@@ -1,5 +1,7 @@
 import scalikejdbc._
-
+import java.time._
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 /**
   * Převádí JDF na GTFS
   *
@@ -19,16 +21,14 @@ class GTFS(path: String)(implicit session: DBSession = AutoSession) {
   )""",
   """
    "calendar" (
-    "id" INT,
-    "transit_system" VARCHAR(254),
     "service_id" VARCHAR(254),
-    "monday" INT,
-    "tuesday" INT,
-    "wednesday" INT,
-    "thursday" INT,
-    "friday" INT,
-    "saturday" INT,
-    "sunday" INT,
+    "monday" INT DEFAULT 1,
+    "tuesday" INT DEFAULT 1,
+    "wednesday" INT DEFAULT 1,
+    "thursday" INT DEFAULT 1,
+    "friday" INT DEFAULT 1,
+    "saturday" INT DEFAULT 1,
+    "sunday" INT DEFAULT 1,
     "start_date" VARCHAR(254),
     "end_date" VARCHAR(254)
   )""",
@@ -154,19 +154,30 @@ class GTFS(path: String)(implicit session: DBSession = AutoSession) {
     "bikes_allowed" INT
   )""")
 
+  private val calendar = Calendar.getInstance()
+  calendar.set(Calendar.YEAR, LocalDate.now().getYear)
+  calendar.set(Calendar.DAY_OF_YEAR, 1)
+  private val startDate = calendar.getTime.toLocalDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+  calendar.set(Calendar.MONTH, 11)
+  calendar.set(Calendar.DAY_OF_MONTH, 31)
+  private val endDate = calendar.getTime.toLocalDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+
   tables.foreach(table => SQL(s"CREATE TABLE IF NOT EXISTS $table").execute().apply())
   SQL("INSERT INTO agency(\"agency_name\", \"agency_timezone\", \"agency_lang\", \"agency_phone\", \"agency_url\", \"agency_email\") DIRECT SELECT ObchodniJmeno, 'Europe/Prague', 'cs', TelefonSidla, CONCAT('http://', WWW), EMail FROM Dopravci").execute().apply()
-  SQL(s"call CSVWRITE('${path}/agency.txt', 'SELECT * FROM agency', 'caseSensitiveColumnNames=true')").execute().apply()
+  SQL(s"call CSVWRITE('$path/agency.txt', 'SELECT * FROM agency', 'caseSensitiveColumnNames=true')").execute().apply()
   SQL("INSERT INTO stops(\"stop_code\", \"stop_name\", \"stop_lon\", \"stop_lat\") DIRECT SELECT CisloZastavky, CONCAT(CONCAT(NazevObce, CastObce), BlizsiMisto), 0, 0 FROM Zastavky").execute().apply()
-  SQL(s"call CSVWRITE('${path}/stops.txt', 'SELECT * FROM stops')").execute().apply()
+  SQL(s"call CSVWRITE('$path/stops.txt', 'SELECT * FROM stops')").execute().apply()
   SQL("INSERT INTO routes(\"route_id\", \"route_short_name\", \"route_type\") DIRECT SELECT CisloLinky, NazevLinky, 3 FROM Linky").execute().apply()
-  SQL(s"call CSVWRITE('${path}/routes.txt', 'SELECT * FROM routes')").execute().apply()
+  SQL(s"call CSVWRITE('$path/routes.txt', 'SELECT * FROM routes')").execute().apply()
   SQL("INSERT INTO trips(\"route_id\", \"service_id\") DIRECT SELECT Zasspoje.CisloLinky, NazevLinky FROM Zasspoje JOIN Linky ON Zasspoje.CisloLinky = Linky.CisloLinky").execute().apply()
-  SQL(s"call CSVWRITE('${path}/trips.txt', 'SELECT * FROM trips') ").execute().apply()
+  SQL(s"call CSVWRITE('$path/trips.txt', 'SELECT * FROM trips') ").execute().apply()
   SQL("INSERT INTO stop_times(\"stop_id\", \"stop_sequence\") DIRECT SELECT \"stop_id\", rownum() FROM stops JOIN Zasspoje ON \"stop_id\" = CisloZastavky ORDER BY Kilometry").execute().apply()
-  SQL(s"call CSVWRITE('${path}/stop_times.txt', 'SELECT * FROM stop_times')").execute().apply()
+  SQL(s"call CSVWRITE('$path/stop_times.txt', 'SELECT * FROM stop_times')").execute().apply()
+  SQL("INSERT INTO calendar(\"service_id\", \"end_date\", \"start_date\") DIRECT SELECT service_id," + endDate + ", " + startDate + "  FROM trips").execute().apply()
+  SQL(s"call CSVWRITE('$path/calendar.txt', 'SELECT * FROM calendar')").execute().apply()
   sql"DROP TABLE routes".execute().apply()
   sql"DROP TABLE stops".execute().apply()
   sql"DROP TABLE agency".execute().apply()
   sql"DROP TABLE trips".execute().apply()
+  sql"DROP TABLE calendar".execute().apply()
 }
